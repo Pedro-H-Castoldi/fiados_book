@@ -13,7 +13,7 @@ class Cliente:
             self.__id = Cliente.l_clientes[len(Cliente.l_clientes) - 1].id + 1
         self.__nome = nome.title().strip()
         self.__idade = idade
-        self.__cpf = cpf.strip()
+        self.__cpf = f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
         self.__endereco = endereco.title().strip()
         self.__estado = False
 
@@ -69,55 +69,73 @@ class Cliente:
 
     @classmethod
     def listar_clientes_nome(cls, nome):
-        encontrado = False
-        cont_ex = 0
+        encontrado = {}
+        ex = 0
+        cli_unico = None
         for cliente in Cliente.l_clientes:
-            cont_ex += 1
+            ex += 1
             if(cliente.nome == nome):
-                encontrado = True
+                cli_unico = cliente.cpf
+                encontrado[cli_unico] = [cliente, ex]
                 print(f'ID Cliente: {cliente.id} - Nome: {cliente.nome} - Idade: {cliente.idade} - CPF: {cliente.cpf} - Endereço: {cliente.endereco} - Status: {cliente.estado}')
-                op = int(input('1- Histórico de Pagamentos | 2- Histórico de Compras | 3- Editar | 4- Excluir | 0- Voltar: '))
-                if op == 1:
-                    Pagamento.historico_de_pagamento(cliente.id)
-                    break
-                elif op == 2:
-                    Compra.historico_de_compras_cliente(cliente.id)
-                    break
-                elif op == 3:
-                    while True:
-                        op2 = int(input('1- Nome | 2- Idade | 3- CPF | 4- Endereço | 0- Cancelar: '))
-                        if op2 == 1:
-                            nome_e = str(input(f'Nome- {cliente.nome}: ')).title()
-                            cliente.nome = nome_e
-                            salvar_cliente()
-                            print('Cliente editado com sucesso.')
-                        elif op2 == 2:
-                            idade_e = int(input(f'Idade- {cliente.idade}: '))
-                            cliente.idade = idade_e
-                            salvar_cliente()
-                            print('Cliente editado com sucesso.')
-                        elif op2 == 3:
-                            cpf_e = str(input(f'CPF- {cliente.cpf}: '))
-                            cliente.cpf = cpf_e
-                            salvar_cliente()
-                            print('Cliente editado com sucesso.')
-                        elif op2 == 4:
-                            endereco_e = str(input(f'Endereço- {cliente.endereco}: ')).title()
-                            cliente.endereco = endereco_e
-                            salvar_cliente()
-                            print('Cliente editado com sucesso.')
-                        else:
-                            break
-                elif op == 4:
-                    op2 = int(input(f'1- Confirmar exclusão do cliente: {cliente.nome} | 2- Cancelar: '))
-                    if op2 == 1:
-                        print(f'O cliente: {cliente.nome} foi excluído com sucesso.')
-                        Cliente.l_clientes.pop(cont_ex - 1)
-                        salvar_cliente()
-                else:
-                    break
+
+        if len(encontrado) > 1:
+            cpf = str(input('Mais de um usuário com esse nome. Insira o CPF do cliente desejado: '))
+            cpf = f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
+            try:
+                if encontrado[cpf]:
+                    Cliente.crud_cliente(encontrado[cpf][0], encontrado[cpf][1])
+
+            except KeyError:
+                print('Cliente não encontrado.')
+
+        elif len(encontrado) == 1:
+            Cliente.crud_cliente(encontrado[cli_unico][0], encontrado[cli_unico][1])
+
         if not encontrado:
             print('Cliente não encontrado.')
+
+    @classmethod
+    def crud_cliente(cls, cliente, ex):
+        op = int(input('1- Histórico de Pagamentos | 2- Histórico de Compras | 3- Editar | 4- Excluir | 0- Voltar: '))
+        if op == 1:
+            Pagamento.historico_de_pagamento(cliente.id)
+
+        elif op == 2:
+            Compra.historico_de_compras_cliente(cliente.id)
+
+        elif op == 3:
+            while True:
+                op2 = int(input('1- Nome | 2- Idade | 3- CPF | 4- Endereço | 0- Cancelar: '))
+                if op2 == 1:
+                    nome_e = str(input(f'Nome- {cliente.nome}: ')).title()
+                    cliente.nome = nome_e
+                    salvar_cliente()
+                    print('Cliente editado com sucesso.')
+                elif op2 == 2:
+                    idade_e = int(input(f'Idade- {cliente.idade}: '))
+                    cliente.idade = idade_e
+                    salvar_cliente()
+                    print('Cliente editado com sucesso.')
+                elif op2 == 3:
+                    cpf_e = str(input(f'CPF- {cliente.cpf}: '))
+                    cliente.cpf = cpf_e
+                    salvar_cliente()
+                    print('Cliente editado com sucesso.')
+                elif op2 == 4:
+                    endereco_e = str(input(f'Endereço- {cliente.endereco}: ')).title()
+                    cliente.endereco = endereco_e
+                    salvar_cliente()
+                    print('Cliente editado com sucesso.')
+                else:
+                    break
+        elif op == 4:
+            op2 = int(input(f'1- Confirmar exclusão do cliente: {cliente.nome} | 2- Cancelar: '))
+            if op2 == 1:
+                print(f'O cliente: {cliente.nome} foi excluído com sucesso.')
+                Cliente.l_clientes.pop(ex - 1)
+                salvar_cliente()
+
     @classmethod
     def cliente_dados(cls, nome):
         for cliente in Cliente.l_clientes:
@@ -202,49 +220,62 @@ class Produto:
 
     @classmethod
     def listar_produtos_nome(cls, nome):
-        encontrado = False
-        cont_ex = 0
+        encontrado = {}
+        ex = 0
+        pro_unico = None
         for produto in Produto.l_produtos:
-            cont_ex += 1
+            ex += 1
             if produto.nome == nome:
-                encontrado = True
-                print(f'ID: {produto.id}  -  Nome: {produto.nome}  - Tipo: {produto.tipo}'
+                pro_unico = produto.id
+                encontrado[pro_unico] = [produto, ex]
+                print(f'ID: {produto.id}  -  Nome: {produto.nome}  -  Tipo: {produto.tipo}'
                       f'  -  Preço: {produto.preco:.2f}  -  Quantidade: {produto.quant} - Estoque: {produto.estoque}')
-                op = int(input('1- Editar | 2- Excluir | 0- Voltar: '))
-                if op == 1:
-                    while True:
-                        op2 = int(input('1- Nome | 2- Tipo | 3- Preço | 4- Quantidade | 0- Cancelar: '))
-                        if op2 == 1:
-                            nome_e = str(input(f'Nome- {produto.nome}: ')).title()
-                            produto.nome = nome_e
-                            salvar_produto()
-                            print('Produto editado com sucesso.')
-                        elif op2 == 2:
-                            tipo_e = str(input(f'Tipo- {produto.tipo}: '))
-                            produto.tipo = tipo_e
-                            salvar_produto()
-                            print('Produto editado com sucesso.')
-                        elif op2 == 3:
-                            preco_e = float(input(f'Preço- {produto.preco}: '))
-                            produto.preco = preco_e
-                            salvar_produto()
-                            print('Produto editado com sucesso.')
-                        elif op2 == 4:
-                            quant_e = int(input(f'Quantidade- {produto.quant}: '))
-                            produto.quant = quant_e
-                            salvar_produto()
-                            print('Produto editado com sucesso.')
-                        else:
-                            break
-                elif op == 2:
-                    op2 = int(input(f'1- Confirmar exclusão do produto: {produto.nome} | 2- Cancelar: '))
-                    if op2 == 1:
-                        print(f'O produto: {produto.nome} foi excluído com sucesso.')
-                        Produto.l_produtos.pop(cont_ex - 1)
-                        salvar_produto()
+
+        if len(encontrado) > 1:
+            id = int(input('Foram encontrados mais de 1 produto com esse nome. Insira o ID do produto desejado: '))
+            if encontrado[id]:
+                Produto.crud_produto(encontrado[id][0], encontrado[id][1])
+
+        elif len(encontrado) == 1:
+            Produto.crud_produto(encontrado[pro_unico][0], encontrado[pro_unico][1])
 
         if not encontrado:
             print('Produto não encontrado')
+
+    @classmethod
+    def crud_produto(cls, produto, ex):
+        op = int(input('1- Editar | 2- Excluir | 0- Voltar: '))
+        if op == 1:
+            while True:
+                op2 = int(input('1- Nome | 2- Tipo | 3- Preço | 4- Quantidade | 0- Cancelar: '))
+                if op2 == 1:
+                    nome_e = str(input(f'Nome- {produto.nome}: ')).title()
+                    produto.nome = nome_e
+                    salvar_produto()
+                    print('Produto editado com sucesso.')
+                elif op2 == 2:
+                    tipo_e = str(input(f'Tipo- {produto.tipo}: '))
+                    produto.tipo = tipo_e
+                    salvar_produto()
+                    print('Produto editado com sucesso.')
+                elif op2 == 3:
+                    preco_e = float(input(f'Preço- {produto.preco}: '))
+                    produto.preco = preco_e
+                    salvar_produto()
+                    print('Produto editado com sucesso.')
+                elif op2 == 4:
+                    quant_e = int(input(f'Quantidade- {produto.quant}: '))
+                    produto.quant = quant_e
+                    salvar_produto()
+                    print('Produto editado com sucesso.')
+                else:
+                    break
+        elif op == 2:
+            op2 = int(input(f'1- Confirmar exclusão do produto: {produto.nome} | 2- Cancelar: '))
+            if op2 == 1:
+                print(f'O produto: {produto.nome} foi excluído com sucesso.')
+                Produto.l_produtos.pop(ex - 1)
+                salvar_produto()
 
     @classmethod
     def produto_dados(cls, nome):
@@ -307,24 +338,31 @@ class Compra:
             if op == 1:
                 confirmar = int(input('1- Confirmar compra à vista? | 2- Voltar : '))
                 if confirmar == 1:
-                    Produto.diminuir_quant(self.carrinho_c)
                     self.__tipo = True
                     self.add_compra()
                     salvar_produto()
                     pagar = Pagamento(self, True)
                     break
             elif op == 2:
-                confirmar = int(input('1- Confirmar compra fiado? | 2- Voltar : '))
+                confirmar = int(input('1- Confirmar compra fiado? | 2- Voltar: '))
                 if confirmar == 1:
-                    Produto.diminuir_quant(self.carrinho_c)
                     self.__tipo = False
                     self.add_compra()
                     salvar_produto()
                     self.cliente_c.estado = True
                     fiado = Fiado(self)
+                    for pro in self.carrinho_c:
+                        if pro.quant == 0:
+                            pro.ver_estoque()
+                    salvar_produto()
                     salvar_fiados()
                     break
             else:
+                nao_repetir = None
+                for produto in self.carrinho_c:
+                    if Carrinho.inseridos_carrinho[produto.nome] and produto.nome != nao_repetir:
+                        produto.quant = produto.quant + Carrinho.inseridos_carrinho[produto.nome]
+                        nao_repetir = produto.nome
                 break
 
     def add_compra(self):
@@ -363,6 +401,8 @@ class Compra:
 
 class Carrinho:
 
+    inseridos_carrinho = {}
+
     def __init__(self):
         self.__l_carrinho = []
 
@@ -384,30 +424,35 @@ class Carrinho:
 
     def encher_carrinho(self):
         self.__l_carrinho.clear()
-
         while True:
             c_produto = str(input('Insira o nome do produto: ')).title()
             c_produto = Produto.produto_dados(c_produto)
-            Produto.ver_estoque(c_produto)
 
             if c_produto:
+                print(c_produto.estoque)
                 if c_produto.estoque:
                     while True:
-                        cont = 0
-                        quant = int(input(f'Quantidade de {c_produto.nome} X {c_produto.quant} : '))
-                        if quant > 0 and c_produto.quant >= quant:
-                            while cont < quant:
-                                cont += 1
-                                self.l_carrinho.append(c_produto)
-                            break
-                        elif quant <= 0:
-                            print('Insira uma quantidade válida.')
-                        else:
-                            print(f'A quantidade pedida é maior que a quantidade em estoque.')
-                            print(f'O produto {c_produto.nome} tem em estoque {c_produto.quant} unidade(s).')
-                            op = int(input(f'1- Tentar novamente | 0- Cancelar: '))
-                            if op != 1:
+                        if c_produto.quant > 0:
+                            cont = 0
+                            quant = int(input(f'Quantidade de {c_produto.nome} X {c_produto.quant} : '))
+                            if quant > 0 and c_produto.quant >= quant:
+                                Carrinho.inseridos_carrinho[c_produto.nome] = Carrinho.inseridos_carrinho.get(c_produto.nome, 0) + quant
+                                while cont < quant:
+                                    cont += 1
+                                    self.l_carrinho.append(c_produto)
+                                    c_produto.quant -= 1
                                 break
+                            elif quant <= 0:
+                                print('Insira uma quantidade válida.')
+                            else:
+                                print(f'A quantidade pedida é maior que a quantidade em estoque.')
+                                print(f'O produto {c_produto.nome} tem em estoque {c_produto.quant} unidade(s).')
+                                op = int(input(f'1- Tentar novamente | 0- Cancelar: '))
+                                if op != 1:
+                                    break
+                        else:
+                            print('O produto se esgotou. Confirme a compra para ter as ultimas unidades.')
+                            break
                 else:
                     print('Produto faltando.')
 
@@ -423,6 +468,8 @@ class Carrinho:
                     break
                 elif op == 0:
                     self.l_carrinho.clear()
+                    c_produto.quant += Carrinho.inseridos_carrinho[c_produto.nome]
+                    Carrinho.inseridos_carrinho = {}
                     break
 
 class Pagamento:
@@ -478,6 +525,7 @@ class Pagamento:
                     data = date.today()
                     self.__data_p = data.strftime('%d/%m/%Y')
                     self.h_pagamento.append(self)
+                    salvar_produto()
                     self.extrato()
                     break
                 else:
@@ -526,6 +574,8 @@ class Pagamento:
             print(f'Cliente: {self.cliente.nome}  CPF: {self.cliente.cpf}')
             for i in range(len(self.dados.carrinho_c)):
                 print(f'    {i + 1} - Produto {self.__dados.carrinho_c[i].nome} - Preço: {self.__dados.carrinho_c[i].preco}')
+                if self.__dados.carrinho_c[i].quant == 0:
+                    Produto.ver_estoque(self.__dados.carrinho_c[i])
             print(f'\nData: {self.data_p}')
             print(f'TOTAL: {self.dados.total}')
 
@@ -748,6 +798,47 @@ def inserir_dados():
             dados = compras.read()
             Compra.l_compras = jsonpickle.decode(dados)
 
+def verificar_cpf(cpf):
+    if len(cpf) != 11:
+        return False
+    if int(cpf):
+        verifica = []
+        n = 11
+        for v in cpf:
+            n -= 1
+            if n < 2:
+                break
+            verifica.append(int(v) * n)
+
+        total_soma = sum(verifica)
+        resto = total_soma * 10 % 11
+        if resto == 10:
+            resto = 0
+
+
+        if resto == int(cpf[9]):
+            verifica.clear()
+            n = 11
+            for v in cpf:
+                verifica.append(int(v) * n)
+                n -= 1
+                if n < 2:
+                    break
+
+            total_soma = sum(verifica)
+            resto = total_soma * 10 % 11
+            if resto == 10:
+                resto = 0
+
+            if resto == int(cpf[10]) and cpf != '1'*11 and cpf != '2'*11 and cpf != '3'*11 and cpf != '4'*11 and cpf != '5'*11 and cpf != '6'*11 and cpf != '7'*11 and cpf != '8'*11 and cpf != '9'*11:
+                cpf = f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
+                a = (True for x in Cliente.l_clientes if x.cpf == cpf)
+                if not tuple(a):
+                    return True
+                print('ERRO: CPF já existente no sistema.')
+    return False
+
+#verificar_cpf('05465487330')
 
 def menu():
     inserir_dados()
@@ -761,7 +852,14 @@ def menu():
                 if op2 == 1:
                     nome = str(input('Nome: '))
                     idade = int(input('Idade: '))
-                    cpf = str(input('CPF: '))
+
+                    while True:
+                        cpf = str(input('CPF: '))
+
+                        if verificar_cpf(cpf):
+                            break
+                        else:
+                            print('CPF inválido. Tente novamente.')
                     endereco = str(input('Endereço: '))
 
                     cliente = Cliente(nome, idade, cpf, endereco)
