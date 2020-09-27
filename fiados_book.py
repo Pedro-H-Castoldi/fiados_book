@@ -2,6 +2,11 @@ import jsonpickle
 from datetime import date
 from pathlib import Path
 
+vermelho = "\033[1;31m"
+azul = "\033[1;34m"
+amarelo = "\033[1;33m"
+fim_cor = "\033[0;0m"
+
 class Cliente:
 
     l_clientes = []
@@ -65,10 +70,10 @@ class Cliente:
     @classmethod
     def listar_clientes(cls):
         for cliente in Cliente.l_clientes:
-            print(f'ID Cliente: {cliente.id} - Nome: {cliente.nome} - Idade: {cliente.idade} - CPF: {cliente.cpf} - Endereço: {cliente.endereco} - Status: {cliente.estado}')
+            print(f'ID Cliente: {cliente.id} - Nome: {cliente.nome} - Idade: {cliente.idade} - CPF: {cliente.cpf} - Endereço: {cliente.endereco} - Status: {vermelho+"Devendo"+fim_cor if cliente.estado else azul+"Em dia"+fim_cor}')
 
     @classmethod
-    def listar_clientes_nome(cls, nome):
+    def listar_clientes_nome(cls, nome, crud=False):
         encontrado = {}
         ex = 0
         cli_unico = None
@@ -77,19 +82,23 @@ class Cliente:
             if(cliente.nome == nome):
                 cli_unico = cliente.cpf
                 encontrado[cli_unico] = [cliente, ex]
-                print(f'ID Cliente: {cliente.id} - Nome: {cliente.nome} - Idade: {cliente.idade} - CPF: {cliente.cpf} - Endereço: {cliente.endereco} - Status: {cliente.estado}')
+                print(f'ID Cliente: {cliente.id} - Nome: {cliente.nome} - Idade: {cliente.idade} - CPF: {cliente.cpf} - Endereço: {cliente.endereco} - Status: {vermelho+"Devendo"+fim_cor if cliente.estado else azul+"Em dia"+fim_cor}')
 
         if len(encontrado) > 1:
             cpf = str(input('Mais de um usuário com esse nome. Insira o CPF do cliente desejado: '))
             cpf = f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
             try:
                 if encontrado[cpf]:
+                    if not crud:
+                        return encontrado[cpf][0]
                     Cliente.crud_cliente(encontrado[cpf][0], encontrado[cpf][1])
 
             except KeyError:
                 print('Cliente não encontrado.')
 
         elif len(encontrado) == 1:
+            if not crud:
+                return encontrado[cli_unico][0]
             Cliente.crud_cliente(encontrado[cli_unico][0], encontrado[cli_unico][1])
 
         if not encontrado:
@@ -135,14 +144,6 @@ class Cliente:
                 print(f'O cliente: {cliente.nome} foi excluído com sucesso.')
                 Cliente.l_clientes.pop(ex - 1)
                 salvar_cliente()
-
-    @classmethod
-    def cliente_dados(cls, nome):
-        for cliente in Cliente.l_clientes:
-            if (cliente.nome == nome):
-                return cliente
-
-        print('Cliente não encontrado.')
 
 class Produto:
     l_produtos = []
@@ -216,10 +217,10 @@ class Produto:
     def listar_produtos(cls):
         for produto in Produto.l_produtos:
             print(f'ID: {produto.id}  -  Nome: {produto.nome}  - Tipo: {produto.tipo}'
-                  f'-  Preço: {produto.preco:.2f}  -  Quantidade: {produto.quant} - Estoque: {produto.estoque}')
+                  f'-  Preço: {produto.preco:.2f}  -  Quantidade: {produto.quant} - Estoque: {azul+"SIM"+fim_cor if produto.estoque else vermelho+"NÃO"+fim_cor}')
 
     @classmethod
-    def listar_produtos_nome(cls, nome):
+    def listar_produtos_nome(cls, nome, crud=False):
         encontrado = {}
         ex = 0
         pro_unico = None
@@ -229,14 +230,18 @@ class Produto:
                 pro_unico = produto.id
                 encontrado[pro_unico] = [produto, ex]
                 print(f'ID: {produto.id}  -  Nome: {produto.nome}  -  Tipo: {produto.tipo}'
-                      f'  -  Preço: {produto.preco:.2f}  -  Quantidade: {produto.quant} - Estoque: {produto.estoque}')
+                      f'  -  Preço: {produto.preco:.2f}  -  Quantidade: {produto.quant} - Estoque: {azul+"SIM"+fim_cor if produto.estoque else vermelho+"NÃO"+fim_cor}')
 
         if len(encontrado) > 1:
             id = int(input('Foram encontrados mais de 1 produto com esse nome. Insira o ID do produto desejado: '))
             if encontrado[id]:
+                if not crud:
+                    return encontrado[id][0]
                 Produto.crud_produto(encontrado[id][0], encontrado[id][1])
 
         elif len(encontrado) == 1:
+            if not crud:
+                return encontrado[pro_unico][0]
             Produto.crud_produto(encontrado[pro_unico][0], encontrado[pro_unico][1])
 
         if not encontrado:
@@ -276,14 +281,6 @@ class Produto:
                 print(f'O produto: {produto.nome} foi excluído com sucesso.')
                 Produto.l_produtos.pop(ex - 1)
                 salvar_produto()
-
-    @classmethod
-    def produto_dados(cls, nome):
-        for produto in Produto.l_produtos:
-            if produto.nome == nome:
-                return produto
-
-        print('Produto não encontrado')
 
 class Compra:
 
@@ -356,6 +353,7 @@ class Compra:
                             pro.ver_estoque()
                     salvar_produto()
                     salvar_fiados()
+                    salvar_cliente()
                     break
             else:
                 nao_repetir = None
@@ -416,7 +414,7 @@ class Carrinho:
 
     def conferir_cliente(self):
         c_cliente = str(input('Insira o nome completo do cliente: ')).title()
-        c_cliente = Cliente.cliente_dados(c_cliente)
+        c_cliente = Cliente.listar_clientes_nome(c_cliente)
 
         if c_cliente:
             self.__cliente = c_cliente
@@ -426,7 +424,7 @@ class Carrinho:
         self.__l_carrinho.clear()
         while True:
             c_produto = str(input('Insira o nome do produto: ')).title()
-            c_produto = Produto.produto_dados(c_produto)
+            c_produto = Produto.listar_produtos_nome(c_produto)
 
             if c_produto:
                 print(c_produto.estoque)
@@ -701,37 +699,55 @@ class Fiado:
 
     @classmethod
     def devedor_compras(cls, nome):
-        encontrado = False
+        encontrado_fiado = {}
+        fiado_unico = None
         for fiado in Fiado.l_compras_fiadas:
+            fiado_unico = fiado.cliente_f.cpf
             if fiado.cliente_f.nome == nome:
-                encontrado = True
-                print(f'Cliente- {fiado.cliente_f.nome}:')
-                for i in range(len(fiado.caderno)):
-                    print(f'ID Compra: {fiado.caderno[i].id}')
-                    for j in range(len(fiado.caderno[i].carrinho_c)):
-                        print(
-                            f'    {j + 1} - ID Produto: {fiado.caderno[i].carrinho_c[j].id} - Produto: {fiado.caderno[i].carrinho_c[j].nome} - Preço: {fiado.caderno[i].carrinho_c[j].preco}'
-                        )
-                    print(f'Total: {fiado.caderno[i].total} | data: {fiado.caderno[i].data}')
-                print(f'\033[31mDEVENDO AO TODO: R${fiado.devendo}\033[0;0m')
-                print()
+                encontrado_fiado[fiado_unico] = fiado
 
-                while True:
-                    op = int(input('1- Pagar | 2- Histórico de Pagamentos | 3- Historico de Compras | 0- Voltar: '))
-                    if op == 1:
-                        pagar = Pagamento(fiado, False)
-                        if Pagamento.confirmar:
-                            break
-                    elif op == 2:
-                        Pagamento.historico_de_pagamento(fiado.cliente_f.id)
-                        break
-                    elif op == 3:
-                        Compra.historico_de_compras_cliente(fiado.cliente_f.id)
-                        break
-                    else:
-                        break
-        if encontrado == False:
+        if len(encontrado_fiado) == 1:
+            Fiado.dados_fiado(encontrado_fiado[fiado_unico])
+
+        elif len(encontrado_fiado) > 1:
+            cpf_fiado = str(input('Foram encontrados mais de um cliente com esse nome. Insira o CPF do cliente desejado.'))
+            cpf_fiado = f'{cpf_fiado[:3]}.{cpf_fiado[3:6]}.{cpf_fiado[6:9]}-{cpf_fiado[9:]}'
+            if encontrado_fiado[cpf_fiado]:
+                Fiado.dados_fiado(encontrado_fiado[cpf_fiado])
+            else:
+                print('Cliente não encontrado.')
+
+        else:
             print('Cliente não encontrado no caderno de devedores.')
+
+    @classmethod
+    def dados_fiado(cls, fiado):
+
+        print(f'Cliente- {fiado.cliente_f.nome}:')
+        for i in range(len(fiado.caderno)):
+            print(f'ID Compra: {fiado.caderno[i].id}')
+            for j in range(len(fiado.caderno[i].carrinho_c)):
+                print(
+                    f'    {j + 1} - ID Produto: {fiado.caderno[i].carrinho_c[j].id} - Produto: {fiado.caderno[i].carrinho_c[j].nome} - Preço: {fiado.caderno[i].carrinho_c[j].preco}'
+                )
+            print(f'Total: {fiado.caderno[i].total} | data: {fiado.caderno[i].data}')
+        print(f'\033[31mDEVENDO AO TODO: R${fiado.devendo}\033[0;0m')
+        print()
+
+        while True:
+            op = int(input('1- Pagar | 2- Histórico de Pagamentos | 3- Historico de Compras | 0- Voltar: '))
+            if op == 1:
+                pagar = Pagamento(fiado, False)
+                if Pagamento.confirmar:
+                    break
+            elif op == 2:
+                Pagamento.historico_de_pagamento(fiado.cliente_f.id)
+                break
+            elif op == 3:
+                Compra.historico_de_compras_cliente(fiado.cliente_f.id)
+                break
+            else:
+                break
 
     @classmethod
     def historico_de_fiados(cls):
@@ -838,8 +854,6 @@ def verificar_cpf(cpf):
                 print('ERRO: CPF já existente no sistema.')
     return False
 
-#verificar_cpf('05465487330')
-
 def menu():
     inserir_dados()
     while True:
@@ -859,12 +873,16 @@ def menu():
                         if verificar_cpf(cpf):
                             break
                         else:
-                            print('CPF inválido. Tente novamente.')
-                    endereco = str(input('Endereço: '))
+                            condicao = int(input('CPF inválido. 1- Tentar novamente | 0 - Cancelar cadastro: '))
+                            cpf = False
+                            if int(condicao) == 0:
+                                break
+                    if cpf:
+                        endereco = str(input('Endereço: '))
 
-                    cliente = Cliente(nome, idade, cpf, endereco)
-                    cliente.add()
-                    salvar_cliente()
+                        cliente = Cliente(nome, idade, cpf, endereco)
+                        cliente.add()
+                        salvar_cliente()
 
 
                 elif op2 == 2:
@@ -873,7 +891,7 @@ def menu():
                         Cliente.listar_clientes()
                     elif op3 == 2:
                         nome = str(input('Insira o nome do cliente: ')).title().strip()
-                        Cliente.listar_clientes_nome(nome)
+                        Cliente.listar_clientes_nome(nome, True)
 
                 elif op2 == 3:
                     print('--- Menu Fiado ---')
@@ -916,7 +934,7 @@ def menu():
                         Produto.listar_produtos()
                     elif op3 == 2:
                         nome = str(input('Insira o nome do produto: ')).title().strip()
-                        Produto.listar_produtos_nome(nome)
+                        Produto.listar_produtos_nome(nome, crud=True)
 
             else:
                 salvar_cliente()
